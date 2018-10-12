@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}
+myBlog - Login
+{% endblock %}
+
+{% block page_content %}
+<div class="page_header">
+	<h1>Login</h1>
+	<p>new user?</p>
+    <b><a href="{{url_for('auth.register')}}">click to register</a></b>
+</div>
+
+<div class="col-md-4">
+{{wtf.quick_form(form)}}
+</div>
+{% endblock %} 
+

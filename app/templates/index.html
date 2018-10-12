@@ -9,6 +9,14 @@ myBlog
 
 {%  block page_content %}
 
-{{ wtf.quick_form(form) }}
 
+
+{% if current_user.is_authenticated %}
+<div class="page-header">
+	
+<b>Hello {{current_user.username}}</b>
+{% else %}
+<b>Hello Stranger</b>
+</div>
+{% endif %}
 {% endblock %}
