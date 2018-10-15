@@ -1,2 +1,5 @@
 venv/*
-*.pyc
+*.py[cod]
+migrations
+__pycache__
+

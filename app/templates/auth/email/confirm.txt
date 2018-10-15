@@ -1,0 +1,12 @@
+Dear {{user.username}},
+
+Welcome to myBlog.
+
+To confirm your account , pls click on the following link:
+{{url_for('auth.confir',token=token,_external=True)}}
+
+Sincerely,
+
+The Flasky Team.
+
+Note: replies to this email address are not monitored.

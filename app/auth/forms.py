@@ -27,3 +27,10 @@ class RegisterForm(FlaskForm):
 		if User.query.filter_by(username=field.data).first():
 			raise ValidationError('Username already taken.')
 
+class ChangePasswordForm(FlaskForm):
+	old_password=PasswordField('Old Passowrd',validators=[Required()])
+	password=PasswordField('New Passowrd',validators=[Required(),EqualTo('password2',message='Passwords must match')])
+	password2=PasswordField('Confirm your password',validators=[Required()])
+	submit=SubmitField('Update password')
+
+	
