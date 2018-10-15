@@ -95,19 +95,6 @@ def unconfirmed():
 
 
 
-@auth.route('/confirm')
-@login_required
-def resend_confirmation():
-	token=current_user.generate_confirmation_token()
-	send_email(current_user.email,'Confirm your Accound','auth/email/confirm',user=current_user,token=token)
-	flash('A new confirmation has been sent to you by token.')
-	return redirect(url_for('main.index'))
-
-
-
-
-
-
 
 
 

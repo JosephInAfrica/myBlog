@@ -2,7 +2,7 @@ from threading import Thread
 from flask import current_app,render_template
 from flask_mail import Message
 
-import asyncio
+
 
 from . import mail
 
@@ -20,4 +20,4 @@ def send_email(to,subject,template,**kwargs):
 	thr.start()
 	return thr
 
-loop=asyncio.get_event_loops()
+
