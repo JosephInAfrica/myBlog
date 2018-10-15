@@ -7,7 +7,6 @@ from ..email import send_email
 from .. import db
 
 
-
 @auth.route('/login',methods=['POST','GET'])
 def login():
 	form=LoginForm()
@@ -52,7 +51,6 @@ def resend_confirmation():
 	return redirect(url_for('main.index'))
 
 
-
 @auth.route('/confirm/<token>')
 @login_required
 def confirm(token):
@@ -62,7 +60,8 @@ def confirm(token):
 		flash('You have confirmed your account. Thanks.')
 	else:
 		flash('The confirmation link is valid')
-
+	return redirect(url_for('main.index'))
+# 不明白这里的flash 如何运行，如果没有 先载入main.index
 
 @auth.route('/change-password',methods=['GET','POST'])
 @login_required
@@ -83,8 +82,6 @@ def change_password():
 def before_request():
 	if current_user.is_authenticated and not current_user.confirmed and request.endpoint[:5]!='auth.' and request.endpoint!='static':
 		return redirect(url_for('auth.unconfirmed'))
-
-
 
 
 @auth.route('/unconfirmed')

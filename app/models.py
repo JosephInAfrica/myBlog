@@ -1,6 +1,6 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
-from flask_login import UserMixin
+from flask_login import UserMixin,AnonymousUserMixin
 from . import db, login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
@@ -51,6 +51,15 @@ class User(db.Model,UserMixin):
 	password_hash=db.Column(db.String(128))
 	confirmed=db.Column(db.Boolean,default=False)
 
+	def __init__(self,**kwargs):
+		super().__init__(**kwargs)
+		if self.role is None:
+			if self.email==current_app.config['ADMIN']:
+				self.role=Role.query.filter_by(permissions=0xff).first()
+			if self.role is None:
+				self.role=Role.query.filter_by(default=True).first()
+
+
 	def generate_confirmation_token(self,expiration=3600):
 		s=Serializer(current_app.config['SECRET_KEY'],expiration)
 		return s.dumps({'confirm':self.id})
@@ -68,6 +77,13 @@ class User(db.Model,UserMixin):
 		else:
 			return False
 
+	def can(self,permissions):
+		return self.role is not None and (self.role.permissions&permissions)==permissions
+
+	def is_administrator(self):
+		return self.can(Permission.ADMINISTER)
+
+
 	@property
 	def password(self):
 		raise AttributeError('password is not a readable attribute')
@@ -82,6 +98,15 @@ class User(db.Model,UserMixin):
 	def __repr__(self):
 		return '<User %r>'%self.username
 
+
+class AnonymousUser(AnonymousUserMixin):
+	def can(self,permissions):
+		return False
+
+	def is_administrator(self):
+		return False
+
+login_manager.anonymous_user=AnonymousUser
 
 @login_manager.user_loader
 def load_user(user_id):

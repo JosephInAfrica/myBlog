@@ -1,5 +1,7 @@
-venv/*
+venv
 *.py[cod]
 migrations
 __pycache__
+*/*.py[cod]
+
 
