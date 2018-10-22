@@ -13,7 +13,8 @@ class Config:
     MAIL_SUBJECT_PREFIX = '[Flasky]'
     MAIL_SENDER = 'Flasky Admin <lochlee@flasky.com>'
     ADMIN = 'lochlee@yahoo.com'
-    POSTS_PER_PAGE=20
+    POSTS_PER_PAGE=5
+    FOLLOWERS_PER_PAGE=25
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
     'postgresql://lochlee:sbpeccwt@localhost:5432/postgres' 
@@ -33,7 +34,6 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
-
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \

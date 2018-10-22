@@ -5,7 +5,8 @@ from . import db, login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from datetime import datetime
-
+from markdown import markdown
+import bleach
 
 class Role(db.Model):
 	__tablename__='roles'
@@ -42,10 +43,16 @@ class Permission:
 	MODERATE_COMMENTS=0x08
 	ADMINISTER=0x80
 
+class Follow(db.Model):
+	__tablename__='follows'
+	follower_id=db.Column(db.Integer,db.ForeignKey('users.id'),primary_key=True)
+	followed_id=db.Column(db.Integer,db.ForeignKey('users.id'),primary_key=True)
+	timestamp=db.Column(db.DateTime,default=datetime.utcnow)
+
+
 class User(db.Model,UserMixin):
 	__tablename__='users'
 	id=db.Column(db.Integer,primary_key=True)
-
 	email=db.Column(db.String(64),unique=True,index=True)
 	username=db.Column(db.String(64),unique=True)
 	role_id=db.Column(db.Integer,db.ForeignKey('roles.id'))
@@ -59,6 +66,14 @@ class User(db.Model,UserMixin):
 	last_seen=db.Column(db.DateTime(),default=datetime.utcnow)
 	posts=db.relationship('Post',backref='author',lazy='dynamic')
 
+	followers=db.relationship('Follow',foreign_keys=[Follow.followed_id],backref=db.backref('followed',lazy='joined'),lazy='dynamic',cascade='all,delete-orphan')
+
+	followed=db.relationship('Follow',foreign_keys=[Follow.follower_id],backref=db.backref('follower',lazy='joined'),lazy='dynamic',cascade='all,delete-orphan')
+
+	@property
+	def followed_posts(self):
+		return Post.query.join(Follow,Follow.followed_id==Post.author_id).filter(Follow.follower_id==self.id)
+
 	def __init__(self,**kwargs):
 		super().__init__(**kwargs)
 		if self.role is None:
@@ -66,11 +81,34 @@ class User(db.Model,UserMixin):
 				self.role=Role.query.filter_by(permissions=0xff).first()
 			if self.role is None:
 				self.role=Role.query.filter_by(default=True).first()
+		self.follow(self)
 
+	@staticmethod
+	def add_self_follows():
+		for user in User.query.all():
+			if not user.is_following(user):
+				user.follow(user)
+				db.session.add(user)
+				db.session.commit()
 
 	def generate_confirmation_token(self,expiration=3600):
 		s=Serializer(current_app.config['SECRET_KEY'],expiration)
 		return s.dumps({'confirm':self.id})
+
+	def follow(self,user):
+		if not self.is_following(user):
+			f=Follow(follower=self,followed=user)
+			db.session.add(f)
+
+	def unfollow(self,user):
+		f=self.followed.filter_by(followed_id=user.id).first()
+		if f:
+			db.session.delete(f)
+
+	def is_following(self,user):
+		return self.followed.filter_by(follower_id=self.id).first() is not None
+	def is_followed_by(self,user):
+		return self.followers.filter_by(followed_id=self.id).first() is not None
 
 	def confirm(self,token):
 		s=Serializer(current_app.config['SECRET_KEY'])
@@ -84,6 +122,8 @@ class User(db.Model,UserMixin):
 			return True
 		else:
 			return False
+
+
 
 	@staticmethod
 	def generate_fake(count=100):
@@ -153,7 +193,7 @@ class Post(db.Model):
 	body=db.Column(db.Text)
 	timestamp=db.Column(db.DateTime,index=True,default=datetime.utcnow)
 	author_id=db.Column(db.Integer,db.ForeignKey('users.id'))
-
+	body_html=db.Column(db.Text)
 
 	@staticmethod
 	def generate_fake(count=100):
@@ -169,9 +209,14 @@ class Post(db.Model):
 			db.session.add(p)
 			db.session.commit()
 
+	@staticmethod
+	def on_changed_body(target,value,oldvalue,initiator):
+		allowed_tags=['a','abbr','acronym','b','blockquote','code','em','i','li','ol','pre','strong','ul','h1','h2','h3','p']
+		target.body_html=bleach.linkify(bleach.clean(markdown(value,output_format='html'),
+			tags=allowed_tags,strip=True))
 
 
-
+db.event.listen(Post.body,'set',Post.on_changed_body)
 
 
 
