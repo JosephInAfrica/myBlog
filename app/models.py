@@ -7,6 +7,8 @@ from flask import current_app
 from datetime import datetime
 from markdown import markdown
 import bleach
+from app.exceptions import ValidationError
+
 
 class Role(db.Model):
 	__tablename__='roles'
@@ -69,6 +71,7 @@ class User(db.Model,UserMixin):
 	followers=db.relationship('Follow',foreign_keys=[Follow.followed_id],backref=db.backref('followed',lazy='joined'),lazy='dynamic',cascade='all,delete-orphan')
 
 	followed=db.relationship('Follow',foreign_keys=[Follow.follower_id],backref=db.backref('follower',lazy='joined'),lazy='dynamic',cascade='all,delete-orphan')
+	comments=db.relationship('Comment',backref='author',lazy='dynamic')
 
 	@property
 	def followed_posts(self):
@@ -83,6 +86,18 @@ class User(db.Model,UserMixin):
 				self.role=Role.query.filter_by(default=True).first()
 		self.follow(self)
 
+	def to_json(self):
+		json_user={
+		'url':url_for('api.get_user',id=self.id,_external=True),
+		'username':self.username,
+		'member_since':self.member_since,
+		'last_seen':self.last_seen,
+		'posts':url_for('api.get_user_posts',id=self.id,_external=True),
+		'post_count':self.post.counts()
+		}
+		return json_user
+
+
 	@staticmethod
 	def add_self_follows():
 		for user in User.query.all():
@@ -95,6 +110,20 @@ class User(db.Model,UserMixin):
 		s=Serializer(current_app.config['SECRET_KEY'],expiration)
 		return s.dumps({'confirm':self.id})
 
+
+	def generate_auth_token(self,expiration=3600):
+		s=Serializer(current_app.config['SECRET_KEY'],expires_in=expiration)
+
+	@staticmethod
+	def verify_auth_token(token):
+		s=Serializer(current_app.config['SECRET_KEY'])
+		try:
+			data=s.loads(token)
+		except:
+			return None
+		return User.query.get(data['id'])
+
+
 	def follow(self,user):
 		if not self.is_following(user):
 			f=Follow(follower=self,followed=user)
@@ -106,9 +135,9 @@ class User(db.Model,UserMixin):
 			db.session.delete(f)
 
 	def is_following(self,user):
-		return self.followed.filter_by(follower_id=self.id).first() is not None
+		return self.followed.filter_by(followed_id=user.id).first() is not None
 	def is_followed_by(self,user):
-		return self.followers.filter_by(followed_id=self.id).first() is not None
+		return self.followers.filter_by(follower_id=user.id).first() is not None
 
 	def confirm(self,token):
 		s=Serializer(current_app.config['SECRET_KEY'])
@@ -122,7 +151,6 @@ class User(db.Model,UserMixin):
 			return True
 		else:
 			return False
-
 
 
 	@staticmethod
@@ -194,6 +222,27 @@ class Post(db.Model):
 	timestamp=db.Column(db.DateTime,index=True,default=datetime.utcnow)
 	author_id=db.Column(db.Integer,db.ForeignKey('users.id'))
 	body_html=db.Column(db.Text)
+	comments=db.relationship('Comment',backref='post',lazy='dynamic')
+
+
+	def to_json(self):
+		json_post={
+		'url':url_for('api.get_post',id=self.id,_external=True),
+		'body':self.body,
+		'body_html':self.body_html,
+		'timestamp':self.timestamp,
+		'author':url_for('api.get_user',id=self.author_id,_external=True),
+		'comments':url_for('api.get_post_comments',id=self.id,_external=True),
+		'comment_count':self.comments.count()
+		}
+		return json_post
+
+	@staticmethod
+	def from_json(json_post):
+		body=json_post.get('body')
+		if body is None or body=='':
+			raise ValidationError('posts does not have a body')
+		return Post(body=body)
 
 	@staticmethod
 	def generate_fake(count=100):
@@ -215,13 +264,50 @@ class Post(db.Model):
 		target.body_html=bleach.linkify(bleach.clean(markdown(value,output_format='html'),
 			tags=allowed_tags,strip=True))
 
-
 db.event.listen(Post.body,'set',Post.on_changed_body)
 
+class Comment(db.Model):
+
+	__tablename__='comments'
+	id=db.Column(db.Integer,primary_key=True)
+	body=db.Column(db.Text)
+	body_html=db.Column(db.Text)
+	timestamp=db.Column(db.DateTime,index=True,default=datetime.utcnow)
+	disabled=db.Column(db.Boolean)
+	author_id=db.Column(db.Integer,db.ForeignKey('users.id'))
+	post_id=db.Column(db.Integer,db.ForeignKey('posts.id'))
+
+	@staticmethod
+	def on_changed_body(target,value,oldvalue,initiator):
+		allowed_tags=['a','abbr','acronym','b','code','em','i','strong']
+		target.body_html=bleach.linkify(bleach.clean(markdown(value,output_format='html'),tags=allowed_tags,strip=True))
 
 
+	@staticmethod
+	def generate_fake(count=500):
+		from sqlalchemy.exc import IntegrityError
+		from random import seed,randint
+		import forgery_py
+		seed()
+
+		post_count=Post.query.count()
+		user_count=User.query.count()
+		for i in range(count):
+			p=Post.query.offset(randint(0,post_count-1)).first()
+			u=User.query.offset(randint(0,user_count-1)).first()
+			comment=Comment(body=forgery_py.lorem_ipsum.sentence(),
+				timestamp=forgery_py.date.date(True),
+
+				post=p,author=u)
+			db.session.add(comment)
+
+			try:
+				db.session.commit()
+			except IntegrityError:
+				db.session.rollback()
 
 
+db.event.listen(Comment.body,'set',Comment.on_changed_body)
 
 
 

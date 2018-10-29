@@ -1,12 +1,12 @@
 # coding=utf-8
 from flask import render_template, url_for, redirect, session, flash,request,current_app,abort,make_response
 from . import main
-from .forms import nameForm, EditProfileForm, EditProfileAdminForm,PostForm
+from .forms import nameForm, EditProfileForm, CommentForm,EditProfileAdminForm,PostForm
 from ..decorators import admin_required, permission_required
-from ..models import Permission, User, Role,Post
+from ..models import Permission, User, Role,Post,Comment
 from flask_login import login_required, current_user
 from .. import db
-
+from flask import current_app
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -114,12 +114,6 @@ def edit_profile_admin(id):
     form.about_me.data=user.about_me
     return render_template('edit_profile.html',form=form,user=user)
 
-@main.route('/post/<int:id>')
-def post(id):
-    post=Post.query.get_or_404(id)
-    return render_template('post.html',posts=[post])
-
-
 @main.route('/edit_post/<int:id>',methods=['POST','GET'])
 def edit_post(id):
     post=Post.query.get_or_404(id)
@@ -134,6 +128,8 @@ def edit_post(id):
         return redirect(url_for('main.post',id=id))
     return render_template('edit_post.html',form=form)
 
+
+
 @main.route('/follow/<username>')
 @login_required
 @permission_required(Permission.FOLLOW)
@@ -141,7 +137,6 @@ def follow(username):
     user=User.query.filter_by(username=username).first()
     if user is None:
         flash('Invalid user')
-
         return redirect(url_for('.index'))
     if current_user.is_following(user):
         flash('You are already folling this user')
@@ -180,8 +175,6 @@ def followers(username):
     return render_template('followers.html',user=user,title='Followers of',endpoint='.followers',pagination=pagination,follows=follows)
 
 
-
-
 @main.route('/followed_by/<username>')
 @login_required
 def followed_by(username):
@@ -191,20 +184,38 @@ def followed_by(username):
         return redirect('.index')
     page=request.args.get('page',1,type=int)
     pagination=user.followed.paginate(page,per_page=current_app.config['FOLLOWERS_PER_PAGE'],error_out=False)
-    follows=[{'user':item.follower,'timestamp':item.timestamp} for item in pagination.items]
+    follows=[{'user':item.followed,'timestamp':item.timestamp} for item in pagination.items]
+    current_app.logger.info(follows)
+    return render_template('followers.html',user=user,title='Followed_by',endpoint='.followed_by',pagination=pagination,follows=follows)
 
 
+@main.route('/post/<int:id>',methods=['POST','GET'])
+def post(id):
+    post=Post.query.get_or_404(id)
+    form=CommentForm()
+    if form.validate_on_submit():
+        comment=Comment(body=form.body.data,post=post,author=current_user.get_current_object())
+        db.session.add(comment)
+        flash('Your comment has been published.')
+        return redirect(url_for('.post',id=post.id,page=-1))
+    page=request.args.get('page',1,type=int)
+    if page==-1:
+        page=(post.comments.count()-1)/current_app.config['COMMENTS_PER_PAGE']+1
+    pagination=post.comments.order_by(Comment.timestamp.asc()).paginate(page,per_page=current_app.config['COMMENTS_PER_PAGE'],error_out=False)
+    comments=pagination.items
+    return render_template('post.html',posts=[post],form=form,comments=comments,pagination=pagination)
 
 
-
-
-
-
-
-
-
-
-
+@main.route('/delete_comment/<int:id>')
+@login_required
+def delete_comment(id):
+    comment=Comment.query.get_or_404(id)
+    post=comment.post
+    if current_user != comment.author and not current_user.can(Permission.ADMINISTER):
+        abort(403)
+    db.session.delete(comment)
+    flash('Comment deleted')
+    return redirect(url_for('.post',id=post.id))
 
 
 

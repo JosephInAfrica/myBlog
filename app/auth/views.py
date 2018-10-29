@@ -21,12 +21,14 @@ def login():
 	return render_template('auth/login.html',form=form)
 
 
+
 @auth.route('/logout')
 @login_required
 def logout():
 	logout_user()
 	flash('You have logged out.')
 	return redirect(url_for('main.index'))
+
 
 
 @auth.route('/register',methods=['GET','POST'])
@@ -42,14 +44,15 @@ def register():
 	return render_template('auth/register.html',form=form)
 
 
+
 @auth.route('/confirm')
 @login_required
 def resend_confirmation():
 	token=current_user.generate_confirmation_token()
 	send_email(current_user.email,'Confirm your account','auth/email/confirm',user=current_user,token=token)
-
 	flash('A new confirmation email has been sent to you by email.')
 	return redirect(url_for('main.index'))
+
 
 
 @auth.route('/confirm/<token>')
@@ -63,6 +66,8 @@ def confirm(token):
 		flash('The confirmation link is valid')
 	return redirect(url_for('main.index'))
 # 不明白这里的flash 如何运行，如果没有 先载入main.index
+
+
 
 @auth.route('/change-password',methods=['GET','POST'])
 @login_required
@@ -79,12 +84,14 @@ def change_password():
 	return render_template('auth/change_password.html',form=form)
 
 
+
 @auth.before_app_request
 def before_request():
 	if current_user.is_authenticated:
 		current_user.ping()
 		if not current_user.confirmed and request.endpoint[:5]!='auth.' and request.endpoint!='static':
 			return redirect(url_for('auth.unconfirmed'))
+
 
 
 @auth.route('/unconfirmed')

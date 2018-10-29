@@ -13,8 +13,9 @@ class Config:
     MAIL_SUBJECT_PREFIX = '[Flasky]'
     MAIL_SENDER = 'Flasky Admin <lochlee@flasky.com>'
     ADMIN = 'lochlee@yahoo.com'
-    POSTS_PER_PAGE=5
+    POSTS_PER_PAGE=20
     FOLLOWERS_PER_PAGE=25
+    COMMENTS_PER_PAGE=25
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
     'postgresql://lochlee:sbpeccwt@localhost:5432/postgres' 
