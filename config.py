@@ -17,9 +17,7 @@ class Config:
     POSTS_PER_PAGE=20
     FOLLOWERS_PER_PAGE=25
     COMMENTS_PER_PAGE=25
-
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-    'postgresql://lochlee:sbpeccwt@localhost:5432/myblog' 
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
     @staticmethod
     def init_app(app):
@@ -40,6 +38,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+    HOSTNAME="callofnature.top"
 
 
 config = {

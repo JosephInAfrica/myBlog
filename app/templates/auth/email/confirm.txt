@@ -3,7 +3,7 @@ Dear {{user.username}},
 Welcome to myBlog.
 
 To confirm your account , pls click on the following link:
-{{url_for('auth.confirm',token=token,_external=True)}}
+{{url_for('auth.confirm',token=token,_external=False)}}
 
 Sincerely,
 
