@@ -16,7 +16,9 @@ class Config:
     POSTS_PER_PAGE=20
     FOLLOWERS_PER_PAGE=25
     COMMENTS_PER_PAGE=25
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = "sqlite:///"+os.path.join(basedir,'data.db')
+
+    # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
     @staticmethod
     def init_app(app):

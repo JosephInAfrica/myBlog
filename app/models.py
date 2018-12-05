@@ -72,6 +72,7 @@ class User(db.Model,UserMixin):
 
 	followed=db.relationship('Follow',foreign_keys=[Follow.follower_id],backref=db.backref('follower',lazy='joined'),lazy='dynamic',cascade='all,delete-orphan')
 	comments=db.relationship('Comment',backref='author',lazy='dynamic')
+	photo=db.relationship('Photo',backref='user')
 
 	@property
 	def followed_posts(self):
@@ -311,6 +312,12 @@ db.event.listen(Comment.body,'set',Comment.on_changed_body)
 
 
 
+class Photo(db.Model):
+	__tablename__='photos'
+	id=db.Column(db.Integer,primary_key=True)
+	url=db.Column(db.String(64))
+	url_p=db.Column(db.String(64)) #compressed version
+	user_id=db.Column(db.Integer,db.ForeignKey('users.id'))
 
 
 

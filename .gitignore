@@ -3,5 +3,6 @@ venv
 migrations
 __pycache__
 */*.py[cod]
-
+.config*
+nohup.out
 

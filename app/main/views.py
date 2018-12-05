@@ -115,17 +115,18 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html',form=form,user=user)
 
 @main.route('/edit_post/<int:id>',methods=['POST','GET'])
+@login_required
 def edit_post(id):
     post=Post.query.get_or_404(id)
     if current_user != post.author and not current_user.can(Permission.ADMINISTER):
         abort(403)
     form=PostForm()
-    form.body.data=post.body
     if form.validate_on_submit():
         post.body=form.body.data
         db.session.add(post)
         flash('Post updated')
         return redirect(url_for('main.post',id=id))
+    form.body.data=post.body
     return render_template('edit_post.html',form=form)
 
 
