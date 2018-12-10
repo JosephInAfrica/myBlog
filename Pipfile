@@ -9,7 +9,6 @@ verify_ssl = true
 requests = "*"
 flask = "*"
 flask-sqlalchemy = "*"
-flask-bootstrap = "*"
 psycopg2 = "*"
 flask-mail = "*"
 flask-moment = "*"
@@ -20,6 +19,10 @@ markdown = "*"
 bleach = "*"
 flask-wtf = "*"
 flask-httpauth = "*"
+bootstrap-flask = "*"
+flask-bootstrap = "*"
+forgery-py = "*"
+forgerypy = "*"
 
 [requires]
 python_version = "3.7"

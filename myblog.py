@@ -2,7 +2,7 @@ import os
 from app import create_app,db
 from config import config
 from app.models import User,Role
-from flask_migrate import Migrate
+from flask_migrate import Migrate,upgrade
 
 app=create_app(os.getenv('FLASK_CONFIG') or 'default')
 migrate=Migrate(app,db)
@@ -13,7 +13,9 @@ def make_shell_context():
 
 
 def deploy():
-	pass
+	upgrade()
+	Role.insert_roles()
+	User.add_self_follows()	
 
 
 if __name__=='__main__':
