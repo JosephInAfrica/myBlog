@@ -1,6 +1,7 @@
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
@@ -16,7 +17,8 @@ class Config:
     POSTS_PER_PAGE=20
     FOLLOWERS_PER_PAGE=25
     COMMENTS_PER_PAGE=25
-    SQLALCHEMY_DATABASE_URI = "sqlite:///"+os.path.join(basedir,'data.db')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or "sqlite:///"+os.path.join(basedir,'data.db')
+    test_factor=os.environ.get('test_factor')
 
     # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
@@ -38,7 +40,28 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-    HOSTNAME="callofnature.top"
+
+    @classmethod
+    def init_app(cls,app):
+        ProductionConfig.init_app(app)    
+        import logging
+        from logging.handlers import SysLogHandler,SMTPHandler
+        syslog_handler=SysLogHandler()
+        syslog_handler.setLevel(logging.WARNING)
+        app.logger.addHandler(syslog_handler)
+
+        credentials=None
+        secure=None
+        if getattr(cls,'MAIL_USERNAME',None) is not None:
+            credentials=(cls.MAIL_USERNAME,cls.MAIL_PASSWORD)
+            if getattr(cls,'MAIL_USE_TLS',None):
+                secure=()
+        mail_handler=SMTPHandler(mailhost=(cls.MAIL_SERVER,cls.MAIL_PORT),
+            fromaddr=cls.FLASKY_MAIL_SENDER,
+            toaddrs=[cls.FLASKY_ADMIN],
+            subject=cls.FLASKY_MAIL_SUBJECT_PREFIX+' Application Error',
+            credentials=credentials,
+            )
 
 
 config = {
