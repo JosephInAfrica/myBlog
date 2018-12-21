@@ -7,4 +7,5 @@ __pycache__
 nohup.out
 data.db
 *.env
+*.lock
 
