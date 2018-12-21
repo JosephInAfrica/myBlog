@@ -2,6 +2,15 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
+if os.path.exists('.env'):
+    with open('.env') as file:
+        lines=file.readlines()
+
+    env_dict=dict([line.replace('\n','').split('=') for line in lines])
+    for i in env_dict:
+        os.environ[i]=env_dict[i]
+
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
