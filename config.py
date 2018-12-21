@@ -18,7 +18,7 @@ class Config:
     FOLLOWERS_PER_PAGE=25
     COMMENTS_PER_PAGE=25
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or "sqlite:///"+os.path.join(basedir,'data.db')
-    test_factor=os.environ.get('test_factor')
+
 
     # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
